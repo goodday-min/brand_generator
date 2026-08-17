@@ -308,25 +308,17 @@ except Exception as e:
 | ④ 출력 형식 지정 | JSON 스키마를 예시로 명시 + `response_format` 강제 | `chat_json()`에서 `response_format={"type": "json_object"}` 사용 |
 | ⑤ 제약 조건 | 글자 수, 언어, 금지사항 명시 | `"한글명은 15자 이내"`, `"300자 내외"` 등 |
 
-**이중 안전망**: 프롬프트로 "15자 이내"를 요청해도 LLM이 가끔 지키지 않는 경우가 있어,
-`generators/naming.py`에서 15자를 초과하면 코드 레벨에서 강제로 잘라내는 안전망을 추가로 두었습니다.
+**💡이중 안전망**: 프롬프트로 "15자 이내"를 요청해도 LLM이 가끔 지키지 않는 경우가 있어,  
+`generators/naming.py`에서 15자를 초과하면 코드 레벨에서 강제로 잘라내는 안전망을 추가로 두었습니다.  
 (프롬프트 엔지니어링만으로 100% 제어할 수 없는 부분은 코드로 보완한다는 원칙)
 
 ---
-
-## 📌 보너스 과제
-
-| 보너스 기능 | 구현 방식 |
-|---|---|
-| 경쟁사 분석 추가 | 브리프에 `competitors` 필드가 있을 때만 `generators/competitor.py`가 실행되어, 경쟁사별 포지셔닝 요약과 차별화 전략 3~5가지를 생성 |
-| 다국어 네이밍 지원 | 네이밍 생성 단계에서 처음부터 한글명(`ko`)과 영문명(`en`)을 함께 생성하도록 프롬프트/스키마 설계 |
-
 
 ## 📌 실행 방법 & 실행 예시
 
 
 ```bash
-# 1) 가상환경 활성화 (STEP 3 참고)
+# 1) 가상환경 활성화 
 source venv/bin/activate
 
 
@@ -845,3 +837,5 @@ Git은 소스 코드의 변경 이력을 관리하는 **분산 버전 관리 시
 |---|---|---|
 |<img width="300" height="198" alt="image" src="https://github.com/user-attachments/assets/cfef4d20-86cc-4196-8373-ea8fbdf041c2" />|<img width="600" height="660" alt="image" src="https://github.com/user-attachments/assets/a982952b-a745-411a-9dd8-b36d4d7cb68a" /><br><img width="600" height="422" alt="image" src="https://github.com/user-attachments/assets/a0d45e36-c070-4965-a370-44f0e1fc1810" />|<img width="300" height="215" alt="image" src="https://github.com/user-attachments/assets/5f745602-a1c4-4385-8a26-be1c7c6584a0" />
 |
+
+
