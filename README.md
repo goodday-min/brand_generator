@@ -1,4 +1,4 @@
-# 🎨 AI 브랜드 아이덴티티 생성기 (AI Brand Identity Generator)
+# 🎨 AI Brand Identity Generator
 
 브랜드 브리프(업종, 타겟, 키워드 등 : JSON) 하나만 입력하면,   
 LLM API와 이미지 생성 API를 조합하여 **브랜드 네이밍 · 슬로건 · 브랜드 스토리 · 컬러 팔레트 · 로고 시안**까지 자동으로 생성해주는  
