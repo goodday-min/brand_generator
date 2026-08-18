@@ -23,16 +23,14 @@ CLI 기반 Python 프로그램입니다.
 
 ## 📌 과제 목표
 
-이 과제를 완료하면 아래 4가지를 스스로 설명할 수 있어야 합니다. 
-각 목표를 이 프로젝트에서 어떻게 구현했는지 함께 정리했습니다.
+각 목표를 이 프로젝트에서 어떻게 구현했는지 정리했습니다.
 
 | # | 학습 목표 | 이 프로젝트에서의 구현 위치 |
 |---|---|---|
-| 1 | 브랜드 브리프를 입력받아 AI로 브랜드 요소를 생성하는 파이프라인을 설명할 수 있다 | `main.py`의 `run_pipeline()` — 5단계 파이프라인으로 구현 |
+| 1 | 브랜드 브리프를 입력받아 AI로 브랜드 요소를 생성하는 파이프라인을 설명할 수 있다 | `main.py`의 `run_pipeline()` — 6단계 파이프라인으로 구현 |
 | 2 | LLM API와 이미지 생성 API를 조합해 텍스트+이미지 결과물을 생성하는 방법을 설명할 수 있다 | `utils/llm_client.py`의 `chat_json()`(텍스트) / `generate_image_b64()`(이미지) |
 | 3 | 생성된 컬러 팔레트를 시각화하여 이미지로 저장하는 방법을 설명할 수 있다 | `generators/palette.py`의 `visualize_palette()` (matplotlib 활용) |
-| 4 | API 호출 시 발생할 수 있는 오류 상황과 대응 방법을 설명할 수 있다 | `utils/llm_client.py`의 `call_with_retry()` + 단계별 개별 `try-except` → 📌[8장](#8-api-오류-상황과-대응-방법) 참고📌 |
-
+| 4 | API 호출 시 발생할 수 있는 오류 상황과 대응 방법을 설명할 수 있다 | `utils/llm_client.py`의 `call_with_retry()` + 단계별 개별 `try-except`  |
 
 ---
 
@@ -103,7 +101,7 @@ CLI 기반 Python 프로그램입니다.
 
 ## 📌 입력 / 출력 스펙
 
-### 📥 입력: `brief.json`
+#### 📥 입력: `brief.json`
 
 | 필드 | 필수 | 타입 | 설명 | 예시 |
 |---|---|---|---|---|
@@ -114,7 +112,7 @@ CLI 기반 Python 프로그램입니다.
 | `competitors` | ⬜ | array | 경쟁사 (입력 시 보너스 분석 실행) | `["Aesop", "Innisfree"]` |
 | `notes` | ⬜ | string | 추가 요청사항 | `"MZ세대 가치 소비 반영"` |
 
-### 📤 출력 폴더 구조
+#### 📤 출력 폴더 구조
 
 ```
 output/
@@ -126,7 +124,7 @@ output/
 
 ```
 
-### 📄 출력 : `result.json` 스키마
+#### 📄 출력 : `result.json`
 
 ```json
 {
@@ -144,8 +142,23 @@ output/
   "generated_at": "2026-08-16T10:30:00",
   "errors": []
 }
-```
 
+```
+---
+
+## 📌 프롬프트 엔지니어링 원칙
+
+| 원칙 | 설명 | 이 프로젝트 적용 예 |
+|---|---|---|
+| ① 역할 부여 | AI에게 전문가 역할 부여 | `"당신은 15년 경력의 브랜딩 전문가입니다"` (`prompts/templates.py`의 `SYSTEM_BASE`) |
+| ② 명확한 지시 | 무엇을, 몇 개, 어떻게 요청하는지 명시 | `"네이밍 3~5개를 생성하세요"` |
+| ③ 컨텍스트 제공 | 브리프 정보(업종/타겟/키워드/톤)를 프롬프트에 포함 | 모든 `*_prompt()` 함수가 `brief` dict를 받아 문자열에 삽입 |
+| ④ 출력 형식 지정 | JSON 스키마를 예시로 명시 + `response_format` 강제 | `chat_json()`에서 `response_format={"type": "json_object"}` 사용 |
+| ⑤ 제약 조건 | 글자 수, 언어, 금지사항 명시 | `"한글명은 15자 이내"`, `"300자 내외"` 등 |
+
+**💡이중 안전망**: 프롬프트로 "15자 이내"를 요청해도 LLM이 가끔 지키지 않는 경우가 있어,  
+`generators/naming.py`에서 15자를 초과하면 코드 레벨에서 강제로 잘라내는 안전망을 추가로 두었습니다.  
+(프롬프트 엔지니어링만으로 100% 제어할 수 없는 부분은 코드로 보완한다는 원칙)
 
 ---
 
@@ -160,10 +173,15 @@ output/
 | 시각화 | `matplotlib` | 컬러 팔레트 PNG 생성 |
 | 표준 라이브러리 | `json`, `os`, `pathlib`, `datetime`, `base64`, `sys`, `time` | 파싱/저장/경로 처리/재시도 로직 등 |
 
+💡 matplotlib : 데이터 시각화 라이브러리
+   그래프와 차트를 그릴 때 사용.  
+   간단한 선 그래프부터 복잡한 3D 플롯, 애니메이션까지 만들 수 있어 데이터 분석과 과학적 연구에 필수적인 도구.
+   
 > 💡 **왜 `gpt-image-1`인가?**   
 >  과제 문서에는 예시로 DALL·E가 언급되어 있지만, 개발 시점 기준 `dall-e-3`는 신규 모델로 대체되는 추세이며
 >  `gpt-image-1`은 별도의 `response_format` 파라미터 없이 기본적으로 `b64_json` 형식을 반환해 URL 다운로드 없이 바로 파일로 저장할 수 있다는 
 >  실무적 장점이 있습니다.
+
 
 #### 🛠️ 핵심 라이브러리
 
@@ -259,12 +277,12 @@ brand_generator/
 | 필수 필드 누락 | 브리프에 `industry`/`target`/`keywords` 중 하나라도 없음 | 어떤 필드가 빠졌는지 구체적으로 안내하고 프로그램 종료 | `validator.validate_brief()` |
 | 파일 저장(I/O) 오류 | 출력 폴더 권한 없음, 디스크 공간 부족 | 출력 폴더를 파이프라인 실행 전 미리 생성(`mkdir(parents=True, exist_ok=True)`)해 경로 문제를 사전 차단 | `io_helper.ensure_output_dir()` |
 
-### ✅ 오류 처리 계층 구조
+#### ✅ 오류 처리 계층 구조
 
 ```
-1. 프로그램 시작 전
+1. 프로그램 시작 전  
    - API 키 존재 검증 → 실패 시 즉시 종료
-   - 브리프 파일 존재/형식 검증 → 실패 시 즉시 종료
+   - 브리프 파일 존재/형식 검증 → 실패 시 즉시 종료  
         ↓
 2. 각 생성 단계 (naming / slogan / story / palette / logo)
    - 개별 try-except로 감싸기
@@ -276,7 +294,7 @@ brand_generator/
    - 어떤 단계가 왜 실패했는지 "errors" 필드로 확인 가능
 ```
 
-### ✅ 핵심 설계: "부분 실패를 허용하는 파이프라인"
+#### ✅ 핵심 설계: "부분 실패를 허용하는 파이프라인"
 
 ```python
 # 나쁜 예 - 하나 실패하면 전체가 중단됨
@@ -298,42 +316,24 @@ except Exception as e:
 
 ---
 
-## 📌 프롬프트 엔지니어링 원칙
-
-| 원칙 | 설명 | 이 프로젝트 적용 예 |
-|---|---|---|
-| ① 역할 부여 | AI에게 전문가 역할 부여 | `"당신은 15년 경력의 브랜딩 전문가입니다"` (`prompts/templates.py`의 `SYSTEM_BASE`) |
-| ② 명확한 지시 | 무엇을, 몇 개, 어떻게 요청하는지 명시 | `"네이밍 3~5개를 생성하세요"` |
-| ③ 컨텍스트 제공 | 브리프 정보(업종/타겟/키워드/톤)를 프롬프트에 포함 | 모든 `*_prompt()` 함수가 `brief` dict를 받아 문자열에 삽입 |
-| ④ 출력 형식 지정 | JSON 스키마를 예시로 명시 + `response_format` 강제 | `chat_json()`에서 `response_format={"type": "json_object"}` 사용 |
-| ⑤ 제약 조건 | 글자 수, 언어, 금지사항 명시 | `"한글명은 15자 이내"`, `"300자 내외"` 등 |
-
-**💡이중 안전망**: 프롬프트로 "15자 이내"를 요청해도 LLM이 가끔 지키지 않는 경우가 있어,  
-`generators/naming.py`에서 15자를 초과하면 코드 레벨에서 강제로 잘라내는 안전망을 추가로 두었습니다.  
-(프롬프트 엔지니어링만으로 100% 제어할 수 없는 부분은 코드로 보완한다는 원칙)
-
----
-
 ## 📌 실행 방법 & 실행 예시
 
 
 ```bash
-# 1) 가상환경 활성화 
-source venv/bin/activate
 
-
-# 2) 프로그램 실행
+# 1) 프로그램 실행
 python main.py
 
 
-# 3) 안내에 따라 입력
+# 2) 안내에 따라 입력
 브리프 파일 경로를 입력하세요: brief.json
 출력 폴더 경로를 입력하세요 (엔터 시 ./output): 
 
 ```
 
-브랜드 브리프 입력 : JSON(brief.json) 파일로 브랜드 정보(업종, 타켓, 키웓, 톤앤매너등)를 입력 받는다.
+브랜드 브리프 입력 : JSON(brief.json) 파일로 브랜드 정보(업종, 타켓, 키웓, 톤앤매너등)를 입력 받는다.  
 
+```
 입력 파일 예시(brief.json)
 {
   "industry": "스페셜티 커피 전문점",
@@ -344,37 +344,50 @@ python main.py
   "notes": "동네 골목상권에 위치한 소규모 로스터리 카페입니다. 과하지 않은 편안한 느낌을 원해요."
 }
 
-
-
 ```
 
-### 실행 결과 예시
-
-- 정상 화면
-<img width="779" height="673" alt="image" src="https://github.com/user-attachments/assets/4d18f2dd-ac78-48ca-831f-b566f6db9c03" />
-
--- /output
-<img width="487" height="238" alt="image" src="https://github.com/user-attachments/assets/01a0adb4-7094-4caa-854e-eeab1f9660c0" />
-<img width="554" height="203" alt="image" src="https://github.com/user-attachments/assets/37e28edc-d3e5-468b-8b4f-b53b9a29fdc2" />
-
--- / 2026-08-14
-<img width="604" height="213" alt="image" src="https://github.com/user-attachments/assets/7aee3b2e-7c5b-4109-af09-4e0952cb325a" />
+### 실행 결과 예시(스크린샷)
 
 
+✅ 정상 실행 화면  
+
+| 입력 파일(json) |정상 실행 스크린샷| 결과물(파일저장) 스크린샷|
+|---|---|---|
+|<img width="300" height="198" alt="image" src="https://github.com/user-attachments/assets/cfef4d20-86cc-4196-8373-ea8fbdf041c2" />|<img width="600" height="660" alt="image" src="https://github.com/user-attachments/assets/a982952b-a745-411a-9dd8-b36d4d7cb68a" /><br><img width="600" height="422" alt="image" src="https://github.com/user-attachments/assets/a0d45e36-c070-4965-a370-44f0e1fc1810" />|<img width="300" height="215" alt="image" src="https://github.com/user-attachments/assets/5f745602-a1c4-4385-8a26-be1c7c6584a0" />|
+
+> 실행이 끝나면 `output/` 폴더(또는 직접 지정한 폴더)에 아래 파일들이 생성됩니다.
 
 ```
-> API 호출이 실패하는 단계가 있어도(예: 네트워크 오류, 키 인증 실패 등) 해당 단계의 실패
-> 메시지만 출력되고 나머지 단계는 계속 진행됩니다.
-실행이 끝나면 `output/` 폴더(또는 직접 지정한 폴더)에 아래 파일들이 생성됩니다.
-
 - `brand_result.json` — 네이밍, 슬로건, 스토리, 컬러 정보, 생성된 파일 목록
 - `color_palette.png` — 컬러 팔레트 시각화 이미지
 - `logo_01.png`, `logo_02.png`, `logo_03.png` — AI가 생성한 로고 시안
+```
 
 
+## 📌에러 처리 가이드
 
+*API 호출 시 발생할 수 있는 오류 상황과 대응 방법*에 해당하는 내용을 정리한 표입니다.
 
-### 부분 실패 시 예시
+| 오류 상황 | 발생 원인 | 프로그램의 대응 | 사용자가 해야 할 일 |
+|---|---|---|---|
+| **API 키 누락** (`OPENAI_API_KEY` 없음) | `.env` 파일을 만들지 않았거나 환경변수 미설정 | 프로그램 시작 직후 감지하여 안내 메시지 출력 후 **즉시 종료** (`sys.exit(1)`) | `.env` 파일에 `OPENAI_API_KEY=sk-...` 추가 |
+| **API 키 인증 실패** (`AuthenticationError`) | 키 값이 잘못되었거나 만료/폐기됨 | 해당 단계(네이밍/슬로건/스토리/컬러/로고)에서 에러 메시지 출력 후 **해당 단계만 건너뛰고 다음 단계 진행** | OpenAI 대시보드에서 키 상태 확인, 새 키 발급 후 `.env` 갱신 |
+| **API 요청 한도 초과** (`RateLimitError`) | 짧은 시간에 너무 많은 요청을 보냈거나 사용량 한도 초과 | 에러 메시지 출력 후 해당 단계를 건너뛰고 계속 진행 | 잠시 후 재실행, 또는 OpenAI 요금제/한도 확인 |
+| **네트워크 연결 오류** (`APIConnectionError`) | 인터넷 연결 불안정, 방화벽/프록시 차단 | 에러 메시지 출력 후 해당 단계를 건너뛰고 계속 진행 | 네트워크 상태 확인 후 재실행 |
+| **OpenAI 서버 오류** (`APIError`, 5xx 등) | OpenAI 서비스 자체의 일시적 장애 | 에러 메시지 출력 후 해당 단계를 건너뛰고 계속 진행 | 잠시 후 재시도, [OpenAI 상태 페이지](https://status.openai.com) 확인 |
+| **JSON 파싱 실패** (`JSONDecodeError`) | LLM 응답이 JSON 형식이 아니거나 형식이 깨짐 | 에러 메시지 출력 후 해당 단계 결과를 빈 값으로 처리, 다음 단계 진행 | 재실행 시 대부분 정상 생성됨 (모델 응답 변동성) |
+| **브리프 파일 없음/경로 오류** | 사용자가 잘못된 경로 입력 | `[브리프 오류]` 메시지 출력 후 프로그램 종료 | 올바른 파일 경로 재입력 |
+| **브리프 JSON 형식 오류** | JSON 문법 오류(콤마 누락 등) | 오류 위치와 함께 메시지 출력 후 프로그램 종료 | JSON 문법 검사 후 재실행 (예: [jsonlint.com](https://jsonlint.com)) |
+| **브리프 필수 필드 누락** | `industry`/`target`/`keywords` 중 하나라도 없음 | 누락된 필드명을 출력하고 프로그램 종료 | 브리프 파일에 필수 필드 추가 후 재실행 |
+| **로고 이미지 저장 실패** (디스크/권한 문제) | 출력 폴더 쓰기 권한 없음, 디스크 용량 부족 등 | 에러 메시지 출력 후 해당 로고만 건너뛰고 다음 로고 계속 생성 | 출력 폴더 권한/용량 확인 |
+
+> 설계 원칙: 텍스트 생성과 이미지 생성은 서로 독립적으로 동작하도록 만들어,
+> 예를 들어 로고 생성에 실패하더라도 이미 만들어진 네이밍/슬로건/스토리/컬러 결과는
+> 정상적으로 `result.json`에 저장됩니다.
+
+> API 호출이 실패하는 단계가 있어도(예: 네트워크 오류, 키 인증 실패 등) 해당 단계의 실패, 메시지만 출력되고 나머지 단계는 계속 진행
+
+✅ 부분 실패 시 예시
 
 ```
 [2/5] 슬로건 생성 중...
@@ -387,168 +400,17 @@ python main.py
 📋 실패 로그: output/brand_result.json 의 "errors" 필드 확인
 ```
 
----
+✅ 오류 화면  
 
-
-
-
-
-
-
-
-
-
----
-
-## 📌 개발 환경 설정 가이드 
-
-> 이 섹션은 최종 결과물에는 포함되지 않지만, 처음 개발 환경을 세팅하는 분들을 위해
-> 순서대로 따라 하면 되는 형태로 정리했습니다.
-
-### Step 1. Python 설치 확인
-
-```bash
-python --version
-# 또는
-python3 --version
-```
-
-- 3.9 이상이면 OK. 없다면 [python.org](https://www.python.org/downloads/)에서 설치 (설치 시 "Add Python to PATH" 체크 필수, Windows 기준)
-
-### Step 2. 프로젝트 폴더로 이동
-
-```bash
-cd brand_generator
-```
-
-### Step 3. 가상환경(venv) 생성 및 활성화
-
-✅ 가상환경(venv)이란?
-
-- **정의**: 파이썬 설치 위에 독립적인 환경을 만드는 기능.  
-  각 환경은 자체적인 **파이썬 인터프리터와 site-packages 디렉터리**를 가짐.
-- **역할**: 특정 프로젝트에서만 필요한 라이브러리 버전을 설치하고, 다른 프로젝트와 격리시킴.
-- **생성 방법**:
-  ```bash
-  python -m venv myenv
-
-✅ venv를 쓰는 이유
-| 문제 상황 | venv 사용 시 해결 방법 |
-|-----------|-----------------------|
-| 프로젝트 A는 `requests==2.6.0` 필요, 프로젝트 B는 `requests==3.0.0` 필요 | 각 프로젝트별 가상환경을 만들어 충돌 방지 |
-| 운영체제 전체에 패키지를 설치하면 다른 프로그램에 영향 | venv는 **프로젝트 전용 환경**이므로 안전 |
-| 협업 시 동일한 환경을 맞추기 어려움 | `requirements.txt`로 환경을 공유하면 누구나 같은 환경 재현 가능 |
-| 테스트용으로 특정 버전의 라이브러리만 필요 | 가상환경을 쉽게 만들고 삭제할 수 있어 실험에 적합 |
-
-
-✅ venv의 장점
-- **격리성**: 다른 프로젝트와 독립적으로 패키지를 관리
-- **재현성**: `requirements.txt`로 동일한 환경을 쉽게 복원
-- **안전성**: 시스템 전체 파이썬 환경을 건드리지 않음
-- **유연성**: 필요할 때마다 새로운 환경을 만들고 삭제 가능
-
----
-
-🚨 주의할 점
-- 프로젝트 코드와 가상환경을 섞지 말 것
-- venv 디렉터리는 보통 `.gitignore`에 추가
-- 환경 이름은 `.venv` 또는 `venv`를 많이 사용 (숨김 처리 및 툴 호환성 때문)
-
-```bash
-# 가상환경 생성
-python -m venv venv
-
-# 가상환경 활성화
-# Windows (cmd/PowerShell)
-venv\Scripts\activate
-
-# macOS / Linux
-source venv/bin/activate
-```
-
-활성화되면 터미널 프롬프트 앞에 `(venv)`가 붙습니다.
-
-### Step 4. 필수 패키지(라이브러리) 설치
-
-프로젝트에 필요한 모든 외부 라이브러리들을 한 번에 설치합니다.
-
-```bash
-pip install -r requirements.txt
-```
-
-### Step 5. API 키 발급 및 `.env` 설정
-
-1. https://platform.openai.com/api-keys 접속 후 로그인
-2. "Create new secret key" 클릭 → 키 복사 (한 번만 보여주므로 안전한 곳에 저장)
-3. 프로젝트 루트에 `.env` 파일 생성 (`.env.example`을 복사해서 사용)
-
-```bash
-# macOS / Linux
-cp .env.example .env
-
-# Windows
-copy .env.example .env
-```
-
-4. `.env` 파일을 열어 아래처럼 실제 키로 교체
-
-```
-OPENAI_API_KEY=sk-proj-실제발급받은키
-```
-
-> ⚠️ `.env` 파일은 `.gitignore`에 포함되어 있어 Git에 절대 올라가지 않습니다. 실수로 커밋하지 않도록 주의하세요.
-
-### Step 6. 실행
-
-```bash
-python main.py
-```
-
-프롬프트가 뜨면 브리프 파일 경로(예: `brief.json`)를 입력하면 됩니다.
-
-### 최종 폴더/설정 체크리스트
-
-- [ ] Python 3.9+ 설치 완료
-- [ ] `venv` 생성 및 활성화 (`(venv)` 표시 확인)
-- [ ] `pip install -r requirements.txt` 완료
-- [ ] `.env` 파일 생성 + API 키 입력 완료
-- [ ] `python main.py` 실행 시 정상적으로 입력 프롬프트가 나타남
-
----
-
-## 📌 Git 명령어 정리 
-
-처음 Git 저장소를 만들고 GitHub에 올리는 과정을 순서대로 정리했습니다.
-
-| 순서 | 명령어 | 설명 |
+|API KEY 설정 오류| 이미지 생성 모델(dall-e)오류|입력파일 오류|
 |---|---|---|
-| 1 | `git init` | 현재 폴더를 Git 저장소로 초기화 |
-| 2 | `git add .` | 모든 변경 파일을 커밋 대상(스테이징)에 추가 |
-| 3 | `git commit -m "Initial commit"` | 스테이징된 변경사항을 커밋(저장) |
-| 4 | `git remote add origin "https://github.com/사용자명/저장소명.git"` | GitHub 원격 저장소 주소 등록 (Windows에서는 따옴표 사용 권장) |
-| 5 | `git branch -M main` | 기본 브랜치 이름을 `main`으로 설정 |
-| 6 | `git push -u origin main` | 원격 저장소로 푸시 + 로컬-원격 브랜치 추적(tracking) 연결 |
-
-### ⚠️ 처음 Git을 세팅할 때 자주 겪는 문제와 해결
-
-| 문제 상황 | 원인 | 해결 방법 |
-|---|---|---|
-| `git remote add` 이후 `git push`만 하면 에러 발생 | `remote add`는 원격 주소만 등록할 뿐, 브랜치 추적(tracking)까지 자동으로 설정해주지 않음 | `git push -u origin main`처럼 `-u` 옵션을 반드시 사용 (또는 `git clone`으로 시작) |
-| `fatal: refusing to merge unrelated histories` | GitHub에서 저장소 생성 시 README 등을 자동 생성해, 로컬과 원격의 커밋 历사가 서로 다름(diverged) | `git pull origin main --allow-unrelated-histories` 로 두 히스토리를 강제로 병합 |
-| `<<<<<<<`, `=======`, `>>>>>>>` 마커가 파일에 남음 | 병합(merge) 과정에서 충돌(conflict)이 발생 | 충돌난 파일을 직접 열어 원하는 내용만 남기고 마커를 삭제한 뒤 `git add` → `git commit`으로 병합 완료 |
-| Windows에서 줄바꿈(LF/CRLF) 경고 | Windows(CRLF)와 Git 표준(LF)의 줄바꿈 방식 차이 | 프로젝트 루트에 `.gitattributes` 파일을 추가해 `* text=auto`로 자동 정규화 설정 |
-
-### 이후 변경사항을 올릴 때 (일상적인 흐름)
-
-```bash
-git add .
-git commit -m "기능 설명 커밋 메시지"
-git push
-```
+|<img width="812" height="391" alt="image" src="https://github.com/user-attachments/assets/9c47fd7a-7b03-4f45-a7c8-5759b0861c5a" />|<img width="1612" height="789" alt="image" src="https://github.com/user-attachments/assets/9cd7bc68-dd2a-4902-b590-13ed8113c2c2" />|<img width="613" height="179" alt="image" src="https://github.com/user-attachments/assets/7c523e07-51d7-4e34-8f08-a37d9bcd20f9" />|
 
 ---
 
-이 프로젝트를 완성하면 아래 내용들을 배울 수 있어요:
+## 📌 이 프로젝트로 배우는 것
+
+이 프로젝트를 완성하면 아래 내용들을 배울 수 있습니다.
 
 - ✅ **LLM API 사용법**: OpenAI/Claude 같은 AI로 텍스트 만들기
 
@@ -568,8 +430,8 @@ git push
 
 - ✅ **이미지 생성 AI**: DALL-E, GPT-IMAGE-1로 이미지 만들고 저장하기
 
-      텍스트 설명을 입력하면 그림을 그려주는 AI(DALL-E, GPT-IMAGE-1)를 사용하는 방법을 배웁니다.
-      텍스트뿐만 아니라 이미지도 자동으로 생성할 수 있게 되면, 만들 수 있는 서비스의 폭이 훨씬 넓어져요. (썸네일 자동 생성, 로고 제작, 일러스트 등)
+    텍스트 설명을 입력하면 그림을 그려주는 AI(DALL-E, GPT-IMAGE-1)를 사용하는 방법을 배웁니다.
+    텍스트뿐만 아니라 이미지도 자동으로 생성할 수 있게 되면, 만들 수 있는 서비스의 폭이 훨씬 넓어져요. (썸네일 자동 생성, 로고 제작, 일러스트 등)
 
       📝 이 프로젝트에서 배우는 부분
       generators/logo.py에서 "친환경 화장품 브랜드의 미니멀한 로고" 같은 설명으로 로고 이미지 만들기
@@ -687,9 +549,6 @@ git push
             ax.set_xlim(0, len(colors))
             plt.savefig("output/palette.png")
 
-
-
-
 - ✅ **CLI 만들기**: 명령어로 실행하는 프로그램 설계
 
             python main.py --input brief.json --output ./output
@@ -722,64 +581,110 @@ git push
       python main.py --help
 
 
-🔍 실행 시 내부 흐름
-
-사용자 입력 (터미널)
-    ↓
-argparse가 옵션 파싱
-    ↓
---brief 파일 읽기 → validator로 검증
-    ↓
-각 generator 순차 실행 (naming → slogan → story → palette → logo)
-    ↓
---with-competitor 있으면 경쟁사 분석 추가
-    ↓
---output 폴더에 결과 저장
-    ↓
-최종 리포트 출력 (종료 코드 0)
-
-
-
-## 📌 Git이란?
-
-Git은 소스 코드의 변경 이력을 관리하는 **분산 버전 관리 시스템(DVCS, Distributed Version Control System)**이다.
-파일이 어떻게 변경되어 왔는지를 시간 순서대로 기록하고, 필요하면 과거 특정 시점으로 되돌리거나 여러 사람이 동시에 작업한 내용을 하나로 합칠 수 있게 해준다.
-
-### Git의 핵심 특징
-
-- **분산 구조**: 중앙 서버(예: GitHub)뿐 아니라 개발자 각자의 로컬 컴퓨터에도 전체 저장소(히스토리 포함)의 복사본이 존재한다. 서버가 다운되어도 로컬에서 작업을 계속할 수 있다.
-- **스냅샷 기반 저장**: 파일의 "변경분(diff)"만 저장하는 다른 시스템과 달리, Git은 커밋할 때마다 전체 프로젝트 상태를 스냅샷으로 저장한다. (내부적으로는 중복을 제거해 효율적으로 저장)
-- **빠르고 가벼운 브랜치**: 브랜치 생성/전환 비용이 매우 낮아 새로운 기능이나 실험을 부담 없이 시도할 수 있다.
-- **무결성 보장**: 모든 커밋은 SHA-1 해시로 식별되어, 파일이나 히스토리가 변조되면 즉시 감지할 수 있다.
-- **비선형 개발 지원**: 여러 브랜치에서 동시에 작업하고 나중에 병합(merge)하는 방식의 개발이 가능하다.
-
-### Git이 왜 필요한가
-
-1. **변경 이력 관리**: "언제, 누가, 무엇을, 왜" 변경했는지 커밋 메시지와 함께 기록되므로 문제가 생겼을 때 원인 추적이 쉽다.
-2. **협업 지원**: 여러 명이 같은 프로젝트를 동시에 작업해도 각자의 변경 사항을 브랜치로 분리했다가 병합할 수 있어 충돌을 최소화한다.
-3. **백업 및 복구**: 실수로 코드를 삭제하거나 잘못 수정해도 이전 커밋으로 되돌릴 수 있다.
-4. **실험적 개발 가능**: 새로운 기능을 메인 코드에 영향을 주지 않고 별도 브랜치에서 자유롭게 시도해볼 수 있다.
-5. **코드 리뷰 및 품질 관리**: GitHub 등과 연동하면 Pull Request를 통해 다른 사람의 코드를 리뷰하고 병합 전에 품질을 검증할 수 있다.
-6. **원격 협업**: GitHub, GitLab 같은 원격 저장소를 통해 지리적으로 떨어진 팀원들과도 코드를 공유하고 동기화(push/pull)할 수 있다.
-
-### Git이 없다면?
-
-- 파일을 `최종.py`, `최종_진짜.py`, `최종_진짜_수정.py` 처럼 수동으로 버전 관리해야 한다.
-- 여러 명이 같은 파일을 수정하면 서로의 작업을 덮어쓸 위험이 크다.
-- 특정 시점의 코드로 되돌리기 어렵고, 무엇이 왜 바뀌었는지 알기 힘들다.
+      🔍 실행 시 내부 흐름
+      
+      사용자 입력 (터미널)
+          ↓
+      argparse가 옵션 파싱
+          ↓
+      --brief 파일 읽기 → validator로 검증
+          ↓
+      각 generator 순차 실행 (naming → slogan → story → palette → logo)
+          ↓
+      --with-competitor 있으면 경쟁사 분석 추가
+          ↓
+      --output 폴더에 결과 저장
+          ↓
+      최종 리포트 출력 (종료 코드 0)
 
 
 
-## 📌 API 키 설정 방법
 
-- 프로젝트 루트 경로에 .env 파일을 생성하고 아래와 같이 작성합니다.
+## 📌 개발 환경 설정 가이드 
 
-       OPENAI_API_KEY=your_openai_api_key  
+> 이 섹션은 최종 결과물에는 포함되지 않지만, 처음 개발 환경을 세팅하는 분들을 위해
+> 순서대로 따라 하면 되는 형태로 정리했습니다.
 
-- 각 키의 용도
-  
-       OPENAI_API_KEY : 브랜드 브리프 텍스트 생성 및 로고 이미지 생성
-    
+### Step 1. Python 설치 확인
+
+```bash
+python --version
+```
+- 3.9 이상이면 OK. 없다면 [python.org](https://www.python.org/downloads/)에서 설치 (설치 시 "Add Python to PATH" 체크 필수, Windows 기준)
+
+### Step 2. 프로젝트 폴더로 이동
+
+```bash
+cd brand_generator
+```
+
+### Step 3. 가상환경(venv) 생성 및 활성화
+
+✅ 가상환경(venv)이란?
+
+- **정의**: 파이썬 설치 위에 독립적인 환경을 만드는 기능.  
+  각 환경은 자체적인 **파이썬 인터프리터와 site-packages 디렉터리**를 가짐.
+- **역할**: 특정 프로젝트에서만 필요한 라이브러리 버전을 설치하고, 다른 프로젝트와 격리시킴.
+- **생성 방법**:
+  ```bash
+  python -m venv myenv
+
+✅ venv를 쓰는 이유  
+
+| 문제 상황 | venv 사용 시 해결 방법 |
+|-----------|-----------------------|
+| 프로젝트 A는 `requests==2.6.0` 필요, 프로젝트 B는 `requests==3.0.0` 필요 | 각 프로젝트별 가상환경을 만들어 충돌 방지 |
+| 운영체제 전체에 패키지를 설치하면 다른 프로그램에 영향 | venv는 **프로젝트 전용 환경**이므로 안전 |
+| 협업 시 동일한 환경을 맞추기 어려움 | `requirements.txt`로 환경을 공유하면 누구나 같은 환경 재현 가능 |
+| 테스트용으로 특정 버전의 라이브러리만 필요 | 가상환경을 쉽게 만들고 삭제할 수 있어 실험에 적합 |
+
+✅ venv의 장점
+- **격리성**: 다른 프로젝트와 독립적으로 패키지를 관리
+- **재현성**: `requirements.txt`로 동일한 환경을 쉽게 복원
+- **안전성**: 시스템 전체 파이썬 환경을 건드리지 않음
+- **유연성**: 필요할 때마다 새로운 환경을 만들고 삭제 가능
+
+---
+
+🚨 주의할 점
+- 프로젝트 코드와 가상환경을 섞지 말 것
+- venv 디렉터리는 보통 `.gitignore`에 추가
+- 환경 이름은 `.venv` 또는 `venv`를 많이 사용 (숨김 처리 및 툴 호환성 때문)
+
+```bash
+# 가상환경 생성
+python -m venv venv
+
+# 가상환경 활성화
+# Windows (cmd/PowerShell)
+venv\Scripts\activate
+
+# macOS / Linux
+source venv/bin/activate
+```
+활성화되면 터미널 프롬프트 앞에 `(venv)`가 붙습니다.
+
+### Step 4. 필수 패키지(라이브러리) 설치
+
+프로젝트에 필요한 모든 외부 라이브러리들을 한 번에 설치합니다.
+
+```bash
+pip install -r requirements.txt
+```
+
+### Step 5. API 키 발급 및 `.env` 설정
+
+1. https://platform.openai.com/api-keys 접속 후 로그인
+2. "Create new secret key" 클릭 → 키 복사 (한 번만 보여주므로 안전한 곳에 저장)
+3. 프로젝트 루트에 `.env` 파일 생성 
+4. `.env` 파일을 열어 아래처럼 실제 키로 교체
+
+```
+OPENAI_API_KEY=sk-proj-실제발급받은키
+```
+
+> ⚠️ `.env` 파일은 `.gitignore`에 포함되어 있어 Git에 절대 올라가지 않습니다. 실수로 커밋하지 않도록 주의하세요.
+
 **✅ 환경변수 관리 이유**
      
        API 키를 소스코드에 직접 작성하면 GitHub 업로드, 화면 공유, 코드 제출 과정에서 쉽게 유출될 수 있습니다.
@@ -800,42 +705,50 @@ Git은 소스 코드의 변경 이력을 관리하는 **분산 버전 관리 시
    - 화면 캡처, 발표 자료, 제출 문서에 키가 보이지 않도록 주의한다.
    - 키가 노출되었다면 즉시 폐기하고 새 키를 발급받는다. 
 
+### Step 6. 실행
 
-## 📌 에러 처리 가이드
+```bash
+python main.py
+```
 
-*API 호출 시 발생할 수 있는 오류 상황과 대응 방법*에 해당하는 내용을 정리한 표입니다.
-이 프로그램은 **한 단계가 실패해도 전체가 멈추지 않고, 실패한 단계만 건너뛰고 계속 진행**하는 것을
-기본 원칙으로 합니다.
+프롬프트가 뜨면 브리프 파일 경로(예: `brief.json`)를 입력하면 됩니다.
 
-| 오류 상황 | 발생 원인 | 프로그램의 대응 | 사용자가 해야 할 일 |
-|---|---|---|---|
-| **API 키 누락** (`OPENAI_API_KEY` 없음) | `.env` 파일을 만들지 않았거나 환경변수 미설정 | 프로그램 시작 직후 감지하여 안내 메시지 출력 후 **즉시 종료** (`sys.exit(1)`) | `.env` 파일에 `OPENAI_API_KEY=sk-...` 추가 |
-| **API 키 인증 실패** (`AuthenticationError`) | 키 값이 잘못되었거나 만료/폐기됨 | 해당 단계(네이밍/슬로건/스토리/컬러/로고)에서 에러 메시지 출력 후 **해당 단계만 건너뛰고 다음 단계 진행** | OpenAI 대시보드에서 키 상태 확인, 새 키 발급 후 `.env` 갱신 |
-| **API 요청 한도 초과** (`RateLimitError`) | 짧은 시간에 너무 많은 요청을 보냈거나 사용량 한도 초과 | 에러 메시지 출력 후 해당 단계를 건너뛰고 계속 진행 | 잠시 후 재실행, 또는 OpenAI 요금제/한도 확인 |
-| **네트워크 연결 오류** (`APIConnectionError`) | 인터넷 연결 불안정, 방화벽/프록시 차단 | 에러 메시지 출력 후 해당 단계를 건너뛰고 계속 진행 | 네트워크 상태 확인 후 재실행 |
-| **OpenAI 서버 오류** (`APIError`, 5xx 등) | OpenAI 서비스 자체의 일시적 장애 | 에러 메시지 출력 후 해당 단계를 건너뛰고 계속 진행 | 잠시 후 재시도, [OpenAI 상태 페이지](https://status.openai.com) 확인 |
-| **JSON 파싱 실패** (`JSONDecodeError`) | LLM 응답이 JSON 형식이 아니거나 형식이 깨짐 | 에러 메시지 출력 후 해당 단계 결과를 빈 값으로 처리, 다음 단계 진행 | 재실행 시 대부분 정상 생성됨 (모델 응답 변동성) |
-| **브리프 파일 없음/경로 오류** | 사용자가 잘못된 경로 입력 | `[브리프 오류]` 메시지 출력 후 프로그램 종료 | 올바른 파일 경로 재입력 |
-| **브리프 JSON 형식 오류** | JSON 문법 오류(콤마 누락 등) | 오류 위치와 함께 메시지 출력 후 프로그램 종료 | JSON 문법 검사 후 재실행 (예: [jsonlint.com](https://jsonlint.com)) |
-| **브리프 필수 필드 누락** | `industry`/`target`/`keywords` 중 하나라도 없음 | 누락된 필드명을 출력하고 프로그램 종료 | 브리프 파일에 필수 필드 추가 후 재실행 |
-| **로고 이미지 저장 실패** (디스크/권한 문제) | 출력 폴더 쓰기 권한 없음, 디스크 용량 부족 등 | 에러 메시지 출력 후 해당 로고만 건너뛰고 다음 로고 계속 생성 | 출력 폴더 권한/용량 확인 |
+### 최종 폴더/설정 체크리스트
 
-✅ 오류 화면  
+- [ ] Python 3.9+ 설치 완료
+- [ ] `venv` 생성 및 활성화 (`(venv)` 표시 확인)
+- [ ] `pip install -r requirements.txt` 완료
+- [ ] `.env` 파일 생성 + API 키 입력 완료
+- [ ] `python main.py` 실행 시 정상적으로 입력 프롬프트가 나타남
 
-|API KEY 설정 오류| 이미지 생성 모델(dall-e)오류|입력파일 오류|
+---
+
+## 📌 Git 명령어 정리 
+
+처음 Git 저장소를 만들고 GitHub에 올리는 과정을 순서대로 정리했습니다.
+
+| 순서 | 명령어 | 설명 |
 |---|---|---|
-|<img width="812" height="391" alt="image" src="https://github.com/user-attachments/assets/9c47fd7a-7b03-4f45-a7c8-5759b0861c5a" />|<img width="1612" height="789" alt="image" src="https://github.com/user-attachments/assets/9cd7bc68-dd2a-4902-b590-13ed8113c2c2" />|<img width="613" height="179" alt="image" src="https://github.com/user-attachments/assets/7c523e07-51d7-4e34-8f08-a37d9bcd20f9" />|
+| 1 | `git init` | 현재 폴더를 Git 저장소로 초기화 |
+| 2 | `git add .` | 모든 변경 파일을 커밋 대상(스테이징)에 추가 |
+| 3 | `git commit -m "Initial commit"` | 스테이징된 변경사항을 커밋(저장) |
+| 4 | `git remote add origin "https://github.com/사용자명/저장소명.git"` | GitHub 원격 저장소 주소 등록 (Windows에서는 따옴표 사용 권장) |
+| 5 | `git branch -M main` | 기본 브랜치 이름을 `main`으로 설정 |
+| 6 | `git push -u origin main` | 원격 저장소로 푸시 + 로컬-원격 브랜치 추적(tracking) 연결 |
 
-> 설계 원칙: 텍스트 생성과 이미지 생성은 서로 독립적으로 동작하도록 만들어,
-> 예를 들어 로고 생성에 실패하더라도 이미 만들어진 네이밍/슬로건/스토리/컬러 결과는
-> 정상적으로 `result.json`에 저장됩니다.
+### ⚠️ 처음 Git을 세팅할 때 자주 겪는 문제와 해결
 
-
-✅ 정상 실행 화면  
-
-| 입력 파일(json) |정상 실행 스크린샷| 결과 파일저장 스크린샷|
+| 문제 상황 | 원인 | 해결 방법 |
 |---|---|---|
-|<img width="300" height="198" alt="image" src="https://github.com/user-attachments/assets/cfef4d20-86cc-4196-8373-ea8fbdf041c2" />|<img width="600" height="660" alt="image" src="https://github.com/user-attachments/assets/a982952b-a745-411a-9dd8-b36d4d7cb68a" /><br><img width="600" height="422" alt="image" src="https://github.com/user-attachments/assets/a0d45e36-c070-4965-a370-44f0e1fc1810" />|<img width="300" height="215" alt="image" src="https://github.com/user-attachments/assets/5f745602-a1c4-4385-8a26-be1c7c6584a0" />
-|
+| `git remote add` 이후 `git push`만 하면 에러 발생 | `remote add`는 원격 주소만 등록할 뿐, 브랜치 추적(tracking)까지 자동으로 설정해주지 않음 | `git push -u origin main`처럼 `-u` 옵션을 반드시 사용 (또는 `git clone`으로 시작) |
+| `fatal: refusing to merge unrelated histories` | GitHub에서 저장소 생성 시 README 등을 자동 생성해, 로컬과 원격의 커밋 历사가 서로 다름(diverged) | `git pull origin main --allow-unrelated-histories` 로 두 히스토리를 강제로 병합 |
+| `<<<<<<<`, `=======`, `>>>>>>>` 마커가 파일에 남음 | 병합(merge) 과정에서 충돌(conflict)이 발생 | 충돌난 파일을 직접 열어 원하는 내용만 남기고 마커를 삭제한 뒤 `git add` → `git commit`으로 병합 완료 |
+| Windows에서 줄바꿈(LF/CRLF) 경고 | Windows(CRLF)와 Git 표준(LF)의 줄바꿈 방식 차이 | 프로젝트 루트에 `.gitattributes` 파일을 추가해 `* text=auto`로 자동 정규화 설정 |
 
+### 이후 변경사항을 올릴 때 (일상적인 흐름)
 
+```bash
+git add .
+git commit -m "기능 설명 커밋 메시지"
+git push
+```
