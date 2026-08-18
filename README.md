@@ -1,4 +1,4 @@
-# 🎨 AI Brand Identity Generator
+# AI Brand Identity Generator
 
 브랜드 브리프(업종, 타겟, 키워드 등 : JSON) 하나만 입력하면,   
 LLM API와 이미지 생성 API를 조합하여 **브랜드 네이밍 · 슬로건 · 브랜드 스토리 · 컬러 팔레트 · 로고 시안**까지 자동으로 생성해주는  
@@ -25,29 +25,29 @@ CLI 기반 Python 프로그램입니다.
 
 각 목표를 이 프로젝트에서 어떻게 구현했는지 정리했습니다.
 
-| # | 학습 목표 | 이 프로젝트에서의 구현 위치 |
-|---|---|---|
-| 1 | 브랜드 브리프를 입력받아 AI로 브랜드 요소를 생성하는 파이프라인을 설명할 수 있다 | `main.py`의 `run_pipeline()` — 6단계 파이프라인으로 구현 |
-| 2 | LLM API와 이미지 생성 API를 조합해 텍스트+이미지 결과물을 생성하는 방법을 설명할 수 있다 | `utils/llm_client.py`의 `chat_json()`(텍스트) / `generate_image_b64()`(이미지) |
-| 3 | 생성된 컬러 팔레트를 시각화하여 이미지로 저장하는 방법을 설명할 수 있다 | `generators/palette.py`의 `visualize_palette()` (matplotlib 활용) |
-| 4 | API 호출 시 발생할 수 있는 오류 상황과 대응 방법을 설명할 수 있다 | `utils/llm_client.py`의 `call_with_retry()` + 단계별 개별 `try-except`  |
+| 학습 목표 | 이 프로젝트에서의 구현 위치 |
+|---|---|
+| 브랜드 브리프를 입력받아 AI로 브랜드 요소를 생성하는 파이프라인을 설명할 수 있다 | `main.py`의 `run_pipeline()` — 6단계 파이프라인으로 구현 |
+| LLM API와 이미지 생성 API를 조합해 텍스트+이미지 결과물을 생성하는 방법을 설명할 수 있다 | `utils/llm_client.py`의 `chat_json()`(텍스트) / `generate_image_b64()`(이미지) |
+| 생성된 컬러 팔레트를 시각화하여 이미지로 저장하는 방법을 설명할 수 있다 | `generators/palette.py`의 `visualize_palette()` (matplotlib 활용) |
+| API 호출 시 발생할 수 있는 오류 상황과 대응 방법을 설명할 수 있다 | `utils/llm_client.py`의 `call_with_retry()` + 단계별 개별 `try-except`  |
 
 ---
 
 ## 📌 기능 요구사항
 
-| # | 기 능 | 상세 내용 | 구현 파일 |
-|---| :--- |---|---|
-| 1 | 사용자 입력 | `input()`으로 브리프 파일 경로(필수), 출력 폴더 경로(선택, 기본값 `./output`)를 대화형으로 입력받음 | `main.py` |
-| 2 |  브랜드 브리프 입력  | JSON 파일 로드. 필수 필드 `industry`, `target`, `keywords` / 선택 필드 `tone`, `competitors`, `notes` | `utils/io_helper.py`, `utils/validator.py` |
-| 3 |  브랜드 네이밍 생성  | LLM API 호출 → 네이밍 후보 3~5개 + 각 네이밍의 의미/유래 생성 (한글 15자 이내 제약) | `generators/naming.py` |
-| 4 | 슬로건 생성 | LLM API 호출 → 톤앤매너에 맞는 슬로건/태그라인 3개 생성 | `generators/slogan.py` |
-| 5 |  브랜드 스토리 생성  | LLM API 호출 → 탄생 배경·철학·비전이 담긴 스토리 300자 내외 생성 | `generators/story.py` |
-| 6 | 컬러 팔레트 생성 | LLM API 호출 → 메인 컬러 1개 + 서브 컬러 2~3개(HEX) 추천, matplotlib으로 시각화 후 PNG 저장 | `generators/palette.py` |
-| 7 | 로고 시안 생성 | 이미지 생성 API(`gpt-image-1`) 호출 → 로고 시안 2~3개를 PNG로 저장 | `generators/logo.py` |
-| 8 | 결과 저장 | 텍스트 결과는 `brand_result.json`, 이미지는 개별 PNG로 출력 폴더에 저장 | `utils/io_helper.py` |
-| 9 | 에러 처리 | 각 단계를 개별 `try-except`로 감싸 하나가 실패해도 다음 단계 계속 진행, 실패 내역은 `errors` 필드에 기록 | `main.py` |
-| 10 | API 키 관리 | 코드에 키를 직접 작성하지 않고 `.env` 파일 + `python-dotenv`로 환경변수에서 로드 | `utils/llm_client.py`, `.env` |
+|  기  능  | 상세 내용 | 구현 파일 |
+| --- |---|---|
+| 사용자 입력 | `input()`으로 브리프 파일 경로(필수), 출력 폴더 경로(선택, 기본값 `./output`)를 대화형으로 입력받음 | `main.py` |
+|  브랜드 브리프 입력  | JSON 파일 로드. 필수 필드 `industry`, `target`, `keywords` / 선택 필드 `tone`, `competitors`, `notes` | `utils/io_helper.py`, `utils/validator.py` |
+|  브랜드 네이밍 생성  | LLM API 호출 → 네이밍 후보 3~5개 + 각 네이밍의 의미/유래 생성 (한글 15자 이내 제약) | `generators/naming.py` |
+| 슬로건 생성 | LLM API 호출 → 톤앤매너에 맞는 슬로건/태그라인 3개 생성 | `generators/slogan.py` |
+|  브랜드 스토리 생성  | LLM API 호출 → 탄생 배경·철학·비전이 담긴 스토리 300자 내외 생성 | `generators/story.py` |
+| 컬러 팔레트 생성 | LLM API 호출 → 메인 컬러 1개 + 서브 컬러 2~3개(HEX) 추천, matplotlib으로 시각화 후 PNG 저장 | `generators/palette.py` |
+| 로고 시안 생성 | 이미지 생성 API(`gpt-image-1`) 호출 → 로고 시안 2~3개를 PNG로 저장 | `generators/logo.py` |
+| 결과 저장 | 텍스트 결과는 `brand_result.json`, 이미지는 개별 PNG로 출력 폴더에 저장 | `utils/io_helper.py` |
+| 에러 처리 | 각 단계를 개별 `try-except`로 감싸 하나가 실패해도 다음 단계 계속 진행, 실패 내역은 `errors` 필드에 기록 | `main.py` |
+| API 키 관리 | 코드에 키를 직접 작성하지 않고 `.env` 파일 + `python-dotenv`로 환경변수에서 로드 | `utils/llm_client.py`, `.env` |
 
 ---
 
@@ -211,9 +211,9 @@ output/
 ```
 brand_generator/
 │
-├── main.py                    # 🚪 CLI 진입점 (파이프라인 오케스트레이션)
+├── main.py                    # CLI 진입점 
 │
-├── generators/                # 🤖 AI 생성 모듈 (기능 하나당 파일 하나)
+├── generators/                # AI 생성 모듈 (기능 하나당 파일 하나)
 │   ├── __init__.py 
 │   ├── naming.py              # 네이밍 생성 (한글/영문 + 의미)
 │   ├── slogan.py              # 슬로건 생성
@@ -222,23 +222,22 @@ brand_generator/
 │   ├── logo.py                # 로고 이미지 생성
 │   └── competitor.py          # 경쟁사 분석 [보너스]
 │
-├── utils/                      # 🛠️ 공통 유틸리티
+├── utils/                      # 공통 유틸리티
 │   ├── __init__.py
 │   ├── io_helper.py            # JSON 로드/저장, 이미지 저장, 폴더 생성
 │   ├── llm_client.py           # OpenAI 클라이언트 + 재시도 로직 래퍼
 │   └── validator.py            # 브리프 필수 필드 검증
 │
-├── prompts/                    # 📝 프롬프트 템플릿 분리
+├── prompts/                    # 프롬프트 템플릿 분리
 │   ├── __init__.py
 │   └── templates.py
 │
 ├── output/                      # 결과물 저장 폴더 (git 제외)
-├── .env                         # 🔑 실제 API 키 (git 제외)
-├── .env.example                 # 🔑 API 키 템플릿 (git 포함)
+├── .env                         # 실제 API 키 (git 제외)
 ├── .gitignore                   # Git 추적 제외 파일
-├── brief_example.json           # 📄 예시 브리프
-├── requirements.txt              # 📦 의존성 목록
-└── readme_nato.md                # 📖 이 문서
+├── brief.json                   # 예시 브리프
+├── requirements.txt             # 라이브러리 설치 목록
+└── readme.md               
 ```
 
 💡 **왜 이렇게 나눴을까?**
