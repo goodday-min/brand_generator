@@ -38,6 +38,7 @@ CLI 기반 Python 프로그램입니다.
 
 ---
 
+
 ## 📌 시스템 아키텍처 / 파이프라인
 
 ```
@@ -85,115 +86,6 @@ CLI 기반 Python 프로그램입니다.
    -> 이미지 API가 상대적으로 비싸고 느리므로, 텍스트(네이밍)가 확보된 뒤에 로고 프롬프트에 반영  
 - 저장을 마지막 단계로  
    -> 중간에 일부가 실패해도 성공한 결과만이라도 파일로 남길 수 있음
-
----
-
-## 📌 입력 / 출력 스펙
-
-#### 📥 입력: `brief.json`
-
-| 필드 | 필수 | 타입 | 설명 | 예시 |
-|---|---|---|---|---|
-| `industry` | O | string | 업종 | `"친환경 화장품"` |
-| `target` | O | string | 타겟 고객 | `"20~30대 여성"` |
-| `tone` | - | string | 톤앤매너 | `"미니멀하고 따뜻한"` |
-| `keywords` | O | array | 핵심 키워드 | `["자연", "순수", "지속가능"]` |
-| `competitors` | - | array | 경쟁사 (입력 시 보너스 분석 실행) | `["Aesop", "Innisfree"]` |
-| `notes` | - | string | 추가 요청사항 | `"MZ세대 가치 소비 반영"` |
-
-#### 📤 출력 폴더 구조
-
-```
-output/
-├── result.json          # 모든 텍스트 결과 + 메타데이터
-├── palette.png          # 컬러 팔레트 시각화
-├── logo_1.png           # 로고 시안 1
-└── logo_2.png           # 로고 시안 2
-└── logo_3.png           # 로고 시안 3
-
-```
-
-#### 📄 출력 : `result.json`
-
-```json
-{
-  "brief": { "industry": "...", "target": "...", "keywords": ["..."] },
-  "naming": [
-    {"ko": "블루밍", "en": "Blooming", "meaning": "자연에서 피어나는 아름다움"}
-  ],
-  "slogans": ["일상에 자연을 담다", "피부가 숨쉬는 순간", "자연 그대로, 당신 그대로"],
-  "story": "브랜드 스토리 본문...",W
-  "palette": {
-    "main": {"hex": "#2E7D32", "name": "Forest Green", "reason": "..."},
-    "sub": [{"hex": "#81C784", "name": "Light Green", "reason": "..."}]
-  },
-  "competitor_analysis": { "competitor_analysis": [...], "differentiation": [...] },
-  "generated_at": "2026-08-16T10:30:00",
-  "errors": []
-}
-
-```
----
-
-## 📌 프롬프트 엔지니어링 원칙
-
-| 원칙 | 설명 | 이 프로젝트 적용 예 |
-|---|---|---|
-| 🔹 역할 부여 | AI에게 전문가 역할 부여 | `"당신은 15년 경력의 브랜딩 전문가입니다"` (`prompts/templates.py`의 `SYSTEM_BASE`) |
-| 🔹 명확한 지시 | 무엇을, 몇 개, 어떻게 요청하는지 명시 | `"네이밍 3~5개를 생성하세요"` |
-| 🔹 컨텍스트 제공 | 브리프 정보(업종/타겟/키워드/톤)를 프롬프트에 포함 | 모든 `*_prompt()` 함수가 `brief` dict를 받아 문자열에 삽입 |
-| 🔹 출력 형식 지정 | JSON 스키마를 예시로 명시 + `response_format` 강제 | `chat_json()`에서 `response_format={"type": "json_object"}` 사용 |
-| 🔹 제약 조건 | 글자 수, 언어, 금지사항 명시 | `"한글명은 15자 이내"`, `"300자 내외"` 등 |
-
-**💡이중 안전망**  
-프롬프트로 "15자 이내"를 요청해도 LLM이 지키지 않는 경우를 대비하여,  
-`generators/naming.py`에서 15자를 초과하면 코드 레벨에서 강제로 잘라내는 안전망을 추가로 두었습니다.  
-(프롬프트 엔지니어링만으로 100% 제어할 수 없는 부분은 코드로 보완한다는 원칙)
-
-
----
-
-## 📌 기술 스택 
-
-| 구분 | 라이브러리 / 도구 | 용도 |
-|---|---|---|
-| 언어 | Python 3.9+ | CLI 프로그램 |
-| LLM API | `openai` (`gpt-4o-mini`) | 네이밍/슬로건/스토리/팔레트/경쟁사 분석 텍스트 생성 |
-| 이미지 생성 API | `openai` (`gpt-image-1`) | 로고 시안 생성 |
-| 환경변수 관리 | `python-dotenv` | `.env` 파일에서 API 키 로드 |
-| 시각화 | `matplotlib` | 컬러 팔레트 PNG 생성 |
-| 표준 라이브러리 | `json`, `os`, `pathlib`, `datetime`, `base64`, `sys`, `time` | 파싱/저장/경로 처리/재시도 로직 등 |
-
-💡 matplotlib : 데이터 시각화 라이브러리   
-   그래프와 차트를 그릴 때 사용.  
-   간단한 선 그래프부터 복잡한 3D 플롯, 애니메이션까지 만들 수 있어 데이터 분석과 과학적 연구에 필수적인 도구.
-   
-> 💡 **왜 `gpt-image-1`인가?**   
->  과제 문서에는 예시로 DALL·E가 언급되어 있지만, 개발 시점 기준 `dall-e-3`는 신규 모델로 대체되는 추세이며
->  `gpt-image-1`은 별도의 `response_format` 파라미터 없이 기본적으로 `b64_json` 형식을 반환해 URL 다운로드 없이 바로 파일로 저장할 수 있다는 
->  실무적 장점이 있습니다.
-
-
-#### 🛠️ 핵심 라이브러리
-
-| 라이브러리 | 하는 일 | 꼭 필요한가? |
-|-----------|---------|-------------|
-| `openai` | LLM & 이미지 생성 API 사용 | ✅ 꼭 필요 |
-| `python-dotenv` | API 키 안전하게 관리 | ✅ 꼭 필요 |
-| `matplotlib` | 색상 팔레트 그리기 | ✅ 꼭 필요 |
-| `requests` | 이미지 URL에서 다운로드 | ✅ 꼭 필요 |
-| `Pillow` | 이미지 추가 가공 | ⭕ 선택 |
-| `rich` | 예쁜 CLI 화면 출력 | ⭕ 선택 |
-
-#### 🐍 Python 기본 기능 활용
-
-| 기본 기능 | 하는 일 |
-|-----------|---------|
-| `json` | JSON 파일 읽고 쓰기 |
-| `os` | 환경변수 읽기, 폴더 만들기 |
-| `pathlib` | 파일 경로 다루기 (권장) |
-| `datetime` | 결과 생성 시각 기록 |
-| `sys` | 프로그램 종료 코드 처리 |
 
 ---
 
@@ -252,20 +144,131 @@ brand_generator/
 
 ---
 
+## 📌 기술 스택 
+
+| 구분 | 라이브러리 / 도구 | 용도 |
+|---|---|---|
+| 언어 | Python 3.9+ | CLI 프로그램 |
+| LLM API | `openai` (`gpt-4o-mini`) | 네이밍/슬로건/스토리/팔레트/경쟁사 분석 텍스트 생성 |
+| 이미지 생성 API | `openai` (`gpt-image-1`) | 로고 시안 생성 |
+| 환경변수 관리 | `python-dotenv` | `.env` 파일에서 API 키 로드 |
+| 시각화 | `matplotlib` | 컬러 팔레트 PNG 생성 |
+| 표준 라이브러리 | `json`, `os`, `pathlib`, `datetime`, `base64`, `sys`, `time` | 파싱/저장/경로 처리/재시도 로직 등 |
+
+💡 matplotlib : 데이터 시각화 라이브러리   
+   그래프와 차트를 그릴 때 사용.  
+   간단한 선 그래프부터 복잡한 3D 플롯, 애니메이션까지 만들 수 있어 데이터 분석과 과학적 연구에 필수적인 도구.
+   
+> 💡 **왜 `gpt-image-1`인가?**   
+>  과제 문서에는 예시로 DALL·E가 언급되어 있지만, 개발 시점 기준 `dall-e-3`는 신규 모델로 대체되는 추세이며
+>  `gpt-image-1`은 별도의 `response_format` 파라미터 없이 기본적으로 `b64_json` 형식을 반환해 URL 다운로드 없이 바로 파일로 저장할 수 있다는 
+>  실무적 장점이 있습니다.
+
+
+#### 🛠️ 핵심 라이브러리
+
+| 라이브러리 | 하는 일 | 꼭 필요한가? |
+|-----------|---------|-------------|
+| `openai` | LLM & 이미지 생성 API 사용 | ✅ 꼭 필요 |
+| `python-dotenv` | API 키 안전하게 관리 | ✅ 꼭 필요 |
+| `matplotlib` | 색상 팔레트 그리기 | ✅ 꼭 필요 |
+| `requests` | 이미지 URL에서 다운로드 | ✅ 꼭 필요 |
+| `Pillow` | 이미지 추가 가공 | ⭕ 선택 |
+| `rich` | 예쁜 CLI 화면 출력 | ⭕ 선택 |
+
+#### 🐍 Python 기본 기능 활용
+
+| 기본 기능 | 하는 일 |
+|-----------|---------|
+| `json` | JSON 파일 읽고 쓰기 |
+| `os` | 환경변수 읽기, 폴더 만들기 |
+| `pathlib` | 파일 경로 다루기 (권장) |
+| `datetime` | 결과 생성 시각 기록 |
+| `sys` | 프로그램 종료 코드 처리 |
+
+---
+
+## 📌 입력 / 출력 스펙
+
+#### 📥 입력: `brief.json`
+
+| 필드 | 필수 | 타입 | 설명 | 예시 |
+|---|---|---|---|---|
+| `industry` | O | string | 업종 | `"친환경 화장품"` |
+| `target` | O | string | 타겟 고객 | `"20~30대 여성"` |
+| `tone` | - | string | 톤앤매너 | `"미니멀하고 따뜻한"` |
+| `keywords` | O | array | 핵심 키워드 | `["자연", "순수", "지속가능"]` |
+| `competitors` | - | array | 경쟁사 (입력 시 보너스 분석 실행) | `["Aesop", "Innisfree"]` |
+| `notes` | - | string | 추가 요청사항 | `"MZ세대 가치 소비 반영"` |
+
+#### 📤 출력 폴더 구조
+
+```
+output/
+├── result.json          # 모든 텍스트 결과 + 메타데이터
+├── palette.png          # 컬러 팔레트 시각화
+├── logo_1.png           # 로고 시안 1
+└── logo_2.png           # 로고 시안 2
+└── logo_3.png           # 로고 시안 3
+
+```
+
+#### 📄 출력 : `result.json`
+
+```json
+{
+  "brief": { "industry": "...", "target": "...", "keywords": ["..."] },
+  "naming": [
+    {"ko": "블루밍", "en": "Blooming", "meaning": "자연에서 피어나는 아름다움"}
+  ],
+  "slogans": ["일상에 자연을 담다", "피부가 숨쉬는 순간", "자연 그대로, 당신 그대로"],
+  "story": "브랜드 스토리 본문...",
+  "palette": {
+    "main": {"hex": "#2E7D32", "name": "Forest Green", "reason": "..."},
+    "sub": [{"hex": "#81C784", "name": "Light Green", "reason": "..."}]
+  },
+  "competitor_analysis": { "competitor_analysis": [...], "differentiation": [...] },
+  "generated_at": "2026-08-16T10:30:00",
+  "errors": []
+}
+
+```
+---
+
+## 📌 프롬프트 엔지니어링 원칙
+
+| 원칙 | 설명 | 이 프로젝트 적용 예 |
+|---|---|---|
+| 🔹 역할 부여 | AI에게 전문가 역할 부여 | `"당신은 15년 경력의 브랜딩 전문가입니다"` (`prompts/templates.py`의 `SYSTEM_BASE`) |
+| 🔹 명확한 지시 | 무엇을, 몇 개, 어떻게 요청하는지 명시 | `"네이밍 3~5개를 생성하세요"` |
+| 🔹 컨텍스트 제공 | 브리프 정보(업종/타겟/키워드/톤)를 프롬프트에 포함 | 모든 `*_prompt()` 함수가 `brief` dict를 받아 문자열에 삽입 |
+| 🔹 출력 형식 지정 | JSON 스키마를 예시로 명시 + `response_format` 강제 | `chat_json()`에서 `response_format={"type": "json_object"}` 사용 |
+| 🔹 제약 조건 | 글자 수, 언어, 금지사항 명시 | `"한글명은 15자 이내"`, `"300자 내외"` 등 |
+
+**💡이중 안전망**  
+프롬프트로 "15자 이내"를 요청해도 LLM이 지키지 않는 경우를 대비하여,  
+`generators/naming.py`에서 15자를 초과하면 코드 레벨에서 강제로 잘라내는 안전망을 추가로 두었습니다.  
+(프롬프트 엔지니어링만으로 100% 제어할 수 없는 부분은 코드로 보완한다는 원칙)
+
+---
+
 ## 📌 API 오류 상황과 대응 방법
 
-> 실제 이 프로젝트가 각 오류 상황에 어떻게 대응하도록 구현되었는지 정리한 표입니다.
+> 과제 목표 중 **"API 호출 시 발생할 수 있는 오류 상황과 대응 방법을 설명할 수 있다"** 에 해당하는 내용을 정리한 표입니다.  
+> 실제 이 프로젝트가 각 오류 상황에 어떻게 대응하도록 구현되었는지, 그리고 그 상황에서 사용자가 무엇을 해야 하는지까지 함께 정리했습니다.
 
-| 오류 유형 | 발생 원인 | 이 프로젝트의 대응 방법 | 관련 코드 |
-|---|---|---|---|
-| 인증 오류 (401) | API 키가 없거나 잘못됨/만료됨 | 프로그램 시작 시 키 존재 여부를 먼저 검증하고, 없으면 명확한 안내 메시지 출력 후 즉시 종료 | `llm_client.get_client()` |
-| 요청 초과 (429 Rate Limit) | 짧은 시간에 너무 많은 요청 | 지수 백오프(exponential backoff) 방식으로 최대 3회까지 자동 재시도 | `llm_client.call_with_retry()` |
-| 서버 오류 (5xx) | OpenAI 서버 측 일시적 문제 | 동일하게 재시도 로직 적용, 최종 실패 시 예외를 상위로 전달 | `llm_client.call_with_retry()` |
-| 네트워크 오류 | 인터넷 연결 불안정, 타임아웃 | 재시도 로직으로 1차 대응, 반복 실패 시 해당 단계만 건너뛰고 다음 단계 진행 | `main.run_pipeline()`의 단계별 `try-except` |
-| JSON 파싱 오류 | LLM이 형식을 지키지 않고 설명글을 덧붙임 | `response_format={"type": "json_object"}`로 JSON 모드 강제 + 파싱 실패 시 별도 예외로 감지 | `llm_client.chat_json()` |
-| 브리프 파일 오류 | 파일 경로가 잘못되었거나 JSON 형식이 아님 | 파일 존재 여부와 JSON 파싱을 먼저 검증하고, 실패 시 즉시 종료 (API 호출 전 단계이므로 재시도 대상 아님) | `io_helper.load_brief()` |
-| 필수 필드 누락 | 브리프에 `industry`/`target`/`keywords` 중 하나라도 없음 | 어떤 필드가 빠졌는지 구체적으로 안내하고 프로그램 종료 | `validator.validate_brief()` |
-| 파일 저장(I/O) 오류 | 출력 폴더 권한 없음, 디스크 공간 부족 | 출력 폴더를 파이프라인 실행 전 미리 생성(`mkdir(parents=True, exist_ok=True)`)해 경로 문제를 사전 차단 | `io_helper.ensure_output_dir()` |
+| 오류 유형 | 발생 원인 | 프로그램의 대응 | 관련 코드 | 사용자가 해야 할 일 |
+|---|---|---|---|---|
+| **API 키 누락** (`OPENAI_API_KEY` 없음) | `.env` 파일을 만들지 않았거나 환경변수 미설정 | 프로그램 시작 직후 감지하여 안내 메시지 출력 후 **즉시 종료** (`sys.exit(1)`) | `llm_client.get_client()` | `.env` 파일에 `OPENAI_API_KEY=sk-...` 추가 |
+| **인증 오류 / 실패** (401, `AuthenticationError`) | 키 값이 잘못되었거나 만료/폐기됨 | 해당 단계(네이밍/슬로건/스토리/컬러/로고)에서 에러 메시지 출력 후 **해당 단계만 건너뛰고 다음 단계 진행** | `llm_client.call_with_retry()` | OpenAI 대시보드에서 키 상태 확인, 새 키 발급 후 `.env` 갱신 |
+| **요청 한도 초과** (429, `RateLimitError`) | 짧은 시간에 너무 많은 요청을 보냈거나 사용량 한도 초과 | 지수 백오프(exponential backoff) 방식으로 최대 3회까지 자동 재시도, 최종 실패 시 해당 단계 건너뛰고 진행 | `llm_client.call_with_retry()` | 잠시 후 재실행, 또는 OpenAI 요금제/한도 확인 |
+| **서버 오류** (5xx, `APIError`) | OpenAI 서버 측 일시적 문제 | 동일하게 재시도 로직 적용, 최종 실패 시 해당 단계 건너뛰고 진행 | `llm_client.call_with_retry()` | 잠시 후 재시도, [OpenAI 상태 페이지](https://status.openai.com) 확인 |
+| **네트워크 연결 오류** (`APIConnectionError`) | 인터넷 연결 불안정, 방화벽/프록시 차단, 타임아웃 | 재시도 로직으로 1차 대응, 반복 실패 시 해당 단계만 건너뛰고 다음 단계 진행 | `main.run_pipeline()`의 단계별 `try-except` | 네트워크 상태 확인 후 재실행 |
+| **JSON 파싱 실패** (`JSONDecodeError`) | LLM 응답이 JSON 형식이 아니거나 형식이 깨짐 | `response_format={"type": "json_object"}`로 JSON 모드 강제 + 파싱 실패 시 해당 단계 결과를 빈 값으로 처리하고 다음 단계 진행 | `llm_client.chat_json()` | 재실행 시 대부분 정상 생성됨 (모델 응답 변동성) |
+| **브리프 파일 없음/경로 오류** | 사용자가 잘못된 경로 입력 | `[브리프 오류]` 메시지 출력 후 프로그램 종료 (API 호출 전 단계이므로 재시도 대상 아님) | `io_helper.load_brief()` | 올바른 파일 경로 재입력 |
+| **브리프 JSON 형식 오류** | JSON 문법 오류(콤마 누락 등) | 오류 위치와 함께 메시지 출력 후 프로그램 종료 | `io_helper.load_brief()` | JSON 문법 검사 후 재실행 (예: [jsonlint.com](https://jsonlint.com)) |
+| **브리프 필수 필드 누락** | `industry`/`target`/`keywords` 중 하나라도 없음 | 누락된 필드명을 구체적으로 안내하고 프로그램 종료 | `validator.validate_brief()` | 브리프 파일에 필수 필드 추가 후 재실행 |
+| **로고 이미지 저장 실패** (디스크/권한 문제) | 출력 폴더 쓰기 권한 없음, 디스크 용량 부족 등 | 출력 폴더를 파이프라인 실행 전 미리 생성(`mkdir(parents=True, exist_ok=True)`)해 경로 문제를 사전 차단, 저장 실패 시 해당 로고만 건너뛰고 다음 로고 계속 생성 | `io_helper.ensure_output_dir()` | 출력 폴더 권한/용량 확인 |
 
 #### ✅ 오류 처리 계층 구조
 
@@ -303,6 +306,31 @@ except Exception as e:
     results["errors"].append({"step": "naming", "error": str(e)})
 # 다음 단계(슬로건 생성)는 그대로 계속 진행된다
 ```
+
+> 설계 원칙: 텍스트 생성과 이미지 생성은 서로 독립적으로 동작하도록 만들어,
+> 예를 들어 로고 생성에 실패하더라도 이미 만들어진 네이밍/슬로건/스토리/컬러 결과는
+> 정상적으로 `result.json`에 저장됩니다.
+
+> API 호출이 실패하는 단계가 있어도(예: 네트워크 오류, 키 인증 실패 등) 해당 단계의 실패, 메시지만 출력되고 나머지 단계는 계속 진행
+
+✅ 부분 실패 시 예시
+
+```
+[2/5] 슬로건 생성 중...
+      ⚠️  슬로건 생성 재시도 1/2 (2초 대기 후 재시도) - 사유: ...
+      ❌ 슬로건 생성 실패: LLM 응답 JSON 파싱 실패
+
+...(나머지 단계는 계속 진행)...
+
+⚠️  일부 단계가 실패했지만, 성공한 결과는 저장되었습니다.
+📋 실패 로그: output/brand_result.json 의 "errors" 필드 확인
+```
+
+✅ 오류 화면  
+
+|API KEY 설정 오류| 이미지 생성 모델(dall-e)오류|입력파일 오류|
+|---|---|---|
+|<img width="812" height="391" alt="image" src="https://github.com/user-attachments/assets/9c47fd7a-7b03-4f45-a7c8-5759b0861c5a" />|<img width="1612" height="789" alt="image" src="https://github.com/user-attachments/assets/9cd7bc68-dd2a-4902-b590-13ed8113c2c2" />|<img width="613" height="179" alt="image" src="https://github.com/user-attachments/assets/7c523e07-51d7-4e34-8f08-a37d9bcd20f9" />|
 
 ---
 
@@ -352,49 +380,6 @@ python main.py
 - `color_palette.png` — 컬러 팔레트 시각화 이미지
 - `logo_01.png`, `logo_02.png`, `logo_03.png` — AI가 생성한 로고 시안
 ```
-
-
-## 📌에러 처리 가이드
-
-*API 호출 시 발생할 수 있는 오류 상황과 대응 방법*에 해당하는 내용을 정리한 표입니다.
-
-| 오류 상황 | 발생 원인 | 프로그램의 대응 | 사용자가 해야 할 일 |
-|---|---|---|---|
-| **API 키 누락** (`OPENAI_API_KEY` 없음) | `.env` 파일을 만들지 않았거나 환경변수 미설정 | 프로그램 시작 직후 감지하여 안내 메시지 출력 후 **즉시 종료** (`sys.exit(1)`) | `.env` 파일에 `OPENAI_API_KEY=sk-...` 추가 |
-| **API 키 인증 실패** (`AuthenticationError`) | 키 값이 잘못되었거나 만료/폐기됨 | 해당 단계(네이밍/슬로건/스토리/컬러/로고)에서 에러 메시지 출력 후 **해당 단계만 건너뛰고 다음 단계 진행** | OpenAI 대시보드에서 키 상태 확인, 새 키 발급 후 `.env` 갱신 |
-| **API 요청 한도 초과** (`RateLimitError`) | 짧은 시간에 너무 많은 요청을 보냈거나 사용량 한도 초과 | 에러 메시지 출력 후 해당 단계를 건너뛰고 계속 진행 | 잠시 후 재실행, 또는 OpenAI 요금제/한도 확인 |
-| **네트워크 연결 오류** (`APIConnectionError`) | 인터넷 연결 불안정, 방화벽/프록시 차단 | 에러 메시지 출력 후 해당 단계를 건너뛰고 계속 진행 | 네트워크 상태 확인 후 재실행 |
-| **OpenAI 서버 오류** (`APIError`, 5xx 등) | OpenAI 서비스 자체의 일시적 장애 | 에러 메시지 출력 후 해당 단계를 건너뛰고 계속 진행 | 잠시 후 재시도, [OpenAI 상태 페이지](https://status.openai.com) 확인 |
-| **JSON 파싱 실패** (`JSONDecodeError`) | LLM 응답이 JSON 형식이 아니거나 형식이 깨짐 | 에러 메시지 출력 후 해당 단계 결과를 빈 값으로 처리, 다음 단계 진행 | 재실행 시 대부분 정상 생성됨 (모델 응답 변동성) |
-| **브리프 파일 없음/경로 오류** | 사용자가 잘못된 경로 입력 | `[브리프 오류]` 메시지 출력 후 프로그램 종료 | 올바른 파일 경로 재입력 |
-| **브리프 JSON 형식 오류** | JSON 문법 오류(콤마 누락 등) | 오류 위치와 함께 메시지 출력 후 프로그램 종료 | JSON 문법 검사 후 재실행 (예: [jsonlint.com](https://jsonlint.com)) |
-| **브리프 필수 필드 누락** | `industry`/`target`/`keywords` 중 하나라도 없음 | 누락된 필드명을 출력하고 프로그램 종료 | 브리프 파일에 필수 필드 추가 후 재실행 |
-| **로고 이미지 저장 실패** (디스크/권한 문제) | 출력 폴더 쓰기 권한 없음, 디스크 용량 부족 등 | 에러 메시지 출력 후 해당 로고만 건너뛰고 다음 로고 계속 생성 | 출력 폴더 권한/용량 확인 |
-
-> 설계 원칙: 텍스트 생성과 이미지 생성은 서로 독립적으로 동작하도록 만들어,
-> 예를 들어 로고 생성에 실패하더라도 이미 만들어진 네이밍/슬로건/스토리/컬러 결과는
-> 정상적으로 `result.json`에 저장됩니다.
-
-> API 호출이 실패하는 단계가 있어도(예: 네트워크 오류, 키 인증 실패 등) 해당 단계의 실패, 메시지만 출력되고 나머지 단계는 계속 진행
-
-✅ 부분 실패 시 예시
-
-```
-[2/5] 슬로건 생성 중...
-      ⚠️  슬로건 생성 재시도 1/2 (2초 대기 후 재시도) - 사유: ...
-      ❌ 슬로건 생성 실패: LLM 응답 JSON 파싱 실패
-
-...(나머지 단계는 계속 진행)...
-
-⚠️  일부 단계가 실패했지만, 성공한 결과는 저장되었습니다.
-📋 실패 로그: output/brand_result.json 의 "errors" 필드 확인
-```
-
-✅ 오류 화면  
-
-|API KEY 설정 오류| 이미지 생성 모델(dall-e)오류|입력파일 오류|
-|---|---|---|
-|<img width="812" height="391" alt="image" src="https://github.com/user-attachments/assets/9c47fd7a-7b03-4f45-a7c8-5759b0861c5a" />|<img width="1612" height="789" alt="image" src="https://github.com/user-attachments/assets/9cd7bc68-dd2a-4902-b590-13ed8113c2c2" />|<img width="613" height="179" alt="image" src="https://github.com/user-attachments/assets/7c523e07-51d7-4e34-8f08-a37d9bcd20f9" />|
 
 ---
 
@@ -587,13 +572,12 @@ python main.py
           ↓
       최종 리포트 출력 (종료 코드 0)
 
+---
 
-
+> 아래 두 섹션(개발 환경 설정 가이드, Git 명령어 정리)은 **최종 결과물에는 포함되지 않지만**,  
+> 처음 개발 환경을 세팅하는 초보 개발자가 순서대로 따라 할 수 있도록 정리한 부록입니다.
 
 ## 📌 개발 환경 설정 가이드 
-
-> 이 섹션은 최종 결과물에는 포함되지 않지만, 처음 개발 환경을 세팅하는 분들을 위해
-> 순서대로 따라 하면 되는 형태로 정리했습니다.
 
 ### Step 1. Python 설치 확인
 
@@ -618,6 +602,7 @@ cd brand_generator
 - **생성 방법**:
   ```bash
   python -m venv myenv
+  ```
 
 ✅ venv를 쓰는 이유  
 
@@ -633,8 +618,6 @@ cd brand_generator
 - **재현성**: `requirements.txt`로 동일한 환경을 쉽게 복원
 - **안전성**: 시스템 전체 파이썬 환경을 건드리지 않음
 - **유연성**: 필요할 때마다 새로운 환경을 만들고 삭제 가능
-
----
 
 🚨 주의할 점
 - 프로젝트 코드와 가상환경을 섞지 말 것
@@ -731,7 +714,7 @@ python main.py
 | 문제 상황 | 원인 | 해결 방법 |
 |---|---|---|
 | `git remote add` 이후 `git push`만 하면 에러 발생 | `remote add`는 원격 주소만 등록할 뿐, 브랜치 추적(tracking)까지 자동으로 설정해주지 않음 | `git push -u origin main`처럼 `-u` 옵션을 반드시 사용 (또는 `git clone`으로 시작) |
-| `fatal: refusing to merge unrelated histories` | GitHub에서 저장소 생성 시 README 등을 자동 생성해, 로컬과 원격의 커밋 历사가 서로 다름(diverged) | `git pull origin main --allow-unrelated-histories` 로 두 히스토리를 강제로 병합 |
+| `fatal: refusing to merge unrelated histories` | GitHub에서 저장소 생성 시 README 등을 자동 생성해, 로컬과 원격의 커밋 역사가 서로 다름(diverged) | `git pull origin main --allow-unrelated-histories` 로 두 히스토리를 강제로 병합 |
 | `<<<<<<<`, `=======`, `>>>>>>>` 마커가 파일에 남음 | 병합(merge) 과정에서 충돌(conflict)이 발생 | 충돌난 파일을 직접 열어 원하는 내용만 남기고 마커를 삭제한 뒤 `git add` → `git commit`으로 병합 완료 |
 | Windows에서 줄바꿈(LF/CRLF) 경고 | Windows(CRLF)와 Git 표준(LF)의 줄바꿈 방식 차이 | 프로젝트 루트에 `.gitattributes` 파일을 추가해 `* text=auto`로 자동 정규화 설정 |
 
