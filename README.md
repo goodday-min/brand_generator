@@ -21,19 +21,6 @@ CLI 기반 Python 프로그램입니다.
 
 ---
 
-## 📌 과제 목표
-
-각 목표를 이 프로젝트에서 어떻게 구현했는지 정리했습니다.
-
-| 학습 목표 | 이 프로젝트에서의 구현 위치 |
-|---|---|
-| 브랜드 브리프를 입력받아 AI로 브랜드 요소를 생성하는 파이프라인을 설명할 수 있다 | `main.py`의 `run_pipeline()` — 6단계 파이프라인으로 구현 |
-| LLM API와 이미지 생성 API를 조합해 텍스트+이미지 결과물을 생성하는 방법을 설명할 수 있다 | `utils/llm_client.py`의 `chat_json()`(텍스트) / `generate_image_b64()`(이미지) |
-| 생성된 컬러 팔레트를 시각화하여 이미지로 저장하는 방법을 설명할 수 있다 | `generators/palette.py`의 `visualize_palette()` (matplotlib 활용) |
-| API 호출 시 발생할 수 있는 오류 상황과 대응 방법을 설명할 수 있다 | `utils/llm_client.py`의 `call_with_retry()` + 단계별 개별 `try-except`  |
-
----
-
 ## 📌 주요 기능
 
 |  기  능  | 상세 내용 | 구현 파일 |
